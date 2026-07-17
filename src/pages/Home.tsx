@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase, type Category, type Product } from '../lib/supabase'
+import { db, type Category, type Product } from '../lib/db'
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard'
 
 export function Home() {
@@ -13,9 +13,9 @@ export function Home() {
     let active = true
     ;(async () => {
       const [cats, feat, fresh] = await Promise.all([
-        supabase.from('categories').select('*').order('sort_order'),
-        supabase.from('products').select('*').eq('is_featured', true).order('created_at', { ascending: false }).limit(10),
-        supabase.from('products').select('*').order('created_at', { ascending: false }).limit(8),
+        db.from('categories').select('*').order('sort_order'),
+        db.from('products').select('*').eq('is_featured', true).order('created_at', { ascending: false }).limit(10),
+        db.from('products').select('*').order('created_at', { ascending: false }).limit(8),
       ])
       if (!active) return
       setCategories(cats.data ?? [])

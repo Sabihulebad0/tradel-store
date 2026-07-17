@@ -1,8 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { CartProvider } from './lib/cart'
-import { Header } from './components/Header'
-import { Footer } from './components/Footer'
-import { CartDrawer } from './components/CartDrawer'
+import { AuthProvider } from './lib/auth'
+import { StorefrontLayout } from './components/StorefrontLayout'
 import { Home } from './pages/Home'
 import { Shop } from './pages/Shop'
 import { ProductDetail } from './pages/ProductDetail'
@@ -10,14 +9,22 @@ import { Category } from './pages/Category'
 import { Checkout } from './pages/Checkout'
 import { NotFound } from './pages/NotFound'
 import { SimplePage } from './pages/SimplePage'
+import { AdminLogin } from './pages/admin/Login'
+import { AdminLayout } from './pages/admin/AdminLayout'
+import { AdminDashboard } from './pages/admin/Dashboard'
+import { AdminProducts } from './pages/admin/Products'
+import { AdminProductForm } from './pages/admin/ProductForm'
+import { AdminCategories } from './pages/admin/Categories'
+import { AdminCategoryForm } from './pages/admin/CategoryForm'
+import { AdminOrders } from './pages/admin/Orders'
+import { AdminOrderDetail } from './pages/admin/OrderDetail'
 
 export default function App() {
   return (
-    <CartProvider>
-      <div className="flex min-h-screen flex-col">
-        <Header />
-        <main className="flex-1">
-          <Routes>
+    <AuthProvider>
+      <CartProvider>
+        <Routes>
+          <Route element={<StorefrontLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/category/:slug" element={<Category />} />
@@ -28,12 +35,24 @@ export default function App() {
             <Route path="/account" element={<SimplePage title="My Account" />} />
             <Route path="/help" element={<SimplePage title="Help Center" />} />
             <Route path="/about" element={<SimplePage title="About shopducts.pk" />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </main>
-        <Footer />
-        <CartDrawer />
-      </div>
-    </CartProvider>
+          </Route>
+
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="products/new" element={<AdminProductForm />} />
+            <Route path="products/:id/edit" element={<AdminProductForm />} />
+            <Route path="categories" element={<AdminCategories />} />
+            <Route path="categories/new" element={<AdminCategoryForm />} />
+            <Route path="categories/:id/edit" element={<AdminCategoryForm />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="orders/:id" element={<AdminOrderDetail />} />
+          </Route>
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </CartProvider>
+    </AuthProvider>
   )
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../lib/cart'
 import { fmtPKR } from '../lib/format'
+import { db } from '../lib/db'
 
 const CITIES = ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Hyderabad', 'Sialkot', 'Gujranwala', 'Bahawalpur', 'Sargodha', 'Sukkur', 'Mardan', 'Other']
 
@@ -13,6 +14,8 @@ export function Checkout() {
     name: '', phone: '', email: '', address: '', city: 'Karachi', postal: '', notes: '', payment: 'cod',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const delivery = subtotal >= 5000 ? 0 : 200
   const total = subtotal + delivery
@@ -30,10 +33,56 @@ export function Checkout() {
     return Object.keys(e).length === 0
   }
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
+    setSubmitError('')
+    setSubmitting(true)
+
     const id = 'SD-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+
+    const { data: order, error: orderError } = await db
+      .from('orders')
+      .insert({
+        order_number: id,
+        customer_name: form.name.trim(),
+        customer_phone: form.phone.trim(),
+        customer_email: form.email.trim() || null,
+        address: form.address.trim(),
+        city: form.city,
+        postal_code: form.postal.trim() || null,
+        notes: form.notes.trim() || null,
+        payment_method: form.payment,
+        subtotal,
+        delivery_fee: delivery,
+        total,
+      })
+      .select()
+      .single()
+
+    if (orderError || !order) {
+      setSubmitError(orderError?.message ?? 'Could not place order. Please try again.')
+      setSubmitting(false)
+      return
+    }
+
+    const { error: itemsError } = await db.from('order_items').insert(
+      items.map(item => ({
+        order_id: order.id,
+        product_id: item.id,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        qty: item.qty,
+      }))
+    )
+
+    setSubmitting(false)
+    if (itemsError) {
+      setSubmitError(itemsError.message)
+      return
+    }
+
     setOrderId(id)
     setPlaced(true)
     clear()
@@ -180,7 +229,12 @@ export function Checkout() {
               <span className="font-display text-2xl font-bold text-ink-900">Rs {fmtPKR(total)}</span>
             </div>
 
-            <button type="submit" className="btn-primary mt-5 w-full py-3.5 text-base">Place Order</button>
+            {submitError && (
+              <div className="mt-4 rounded-xl bg-accent-50 px-3 py-2 text-sm text-accent-700">{submitError}</div>
+            )}
+            <button type="submit" disabled={submitting} className="btn-primary mt-5 w-full py-3.5 text-base">
+              {submitting ? 'Placing Order...' : 'Place Order'}
+            </button>
             <p className="mt-3 text-center text-xs text-ink-500">By placing your order, you agree to our Terms & Privacy Policy.</p>
           </div>
         </aside>

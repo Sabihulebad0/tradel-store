@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { supabase, type Product, type Category } from '../lib/supabase'
+import { db, type Product, type Category } from '../lib/db'
 import { fmtPKR, pctOff } from '../lib/format'
 import { Stars } from '../components/Stars'
 import { ProductCard } from '../components/ProductCard'
@@ -25,14 +25,14 @@ export function ProductDetail() {
     setQty(1)
     setAdded(false)
     ;(async () => {
-      const { data: p } = await supabase.from('products').select('*').eq('slug', slug).maybeSingle()
+      const { data: p } = await db.from('products').select('*').eq('slug', slug).maybeSingle()
       if (!active) return
       setProduct(p)
       if (!p) { setLoading(false); return }
 
       const [catRes, relRes] = await Promise.all([
-        supabase.from('categories').select('*').eq('id', p.category_id).maybeSingle(),
-        supabase.from('products').select('*').eq('category_id', p.category_id).neq('id', p.id).limit(5),
+        db.from('categories').select('*').eq('id', p.category_id).maybeSingle(),
+        db.from('products').select('*').eq('category_id', p.category_id).neq('id', p.id).limit(5),
       ])
       if (!active) return
       setCategory(catRes.data)

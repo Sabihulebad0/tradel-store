@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { supabase, type Product, type Category } from '../lib/supabase'
+import { db, type Product, type Category } from '../lib/db'
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard'
 
 const SORTS = [
@@ -51,11 +51,11 @@ export function Shop({ dealsOnly = false }: { dealsOnly?: boolean }) {
     let active = true
     setLoading(true)
     ;(async () => {
-      const { data: cats } = await supabase.from('categories').select('*').order('sort_order')
+      const { data: cats } = await db.from('categories').select('*').order('sort_order')
       if (!active) return
       setCategories(cats ?? [])
 
-      let query = supabase.from('products').select('*')
+      let query = db.from('products').select('*')
       if (dealsOnly) query = query.not('old_price', 'is', null)
       if (q) query = query.or(`name.ilike.%${q}%,brand.ilike.%${q}%,description.ilike.%${q}%`)
       if (cat) query = query.eq('category_id', cat)

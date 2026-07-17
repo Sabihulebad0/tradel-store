@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { supabase, type Product, type Category } from '../lib/supabase'
+import { db, type Product, type Category } from '../lib/db'
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard'
 
 const SORTS = [
@@ -21,12 +21,12 @@ export function Category() {
     let active = true
     setLoading(true)
     ;(async () => {
-      const { data: cat } = await supabase.from('categories').select('*').eq('slug', slug).maybeSingle()
+      const { data: cat } = await db.from('categories').select('*').eq('slug', slug).maybeSingle()
       if (!active) return
       setCategory(cat)
       if (!cat) { setProducts([]); setLoading(false); return }
 
-      let query = supabase.from('products').select('*').eq('category_id', cat.id)
+      let query = db.from('products').select('*').eq('category_id', cat.id)
       switch (sort) {
         case 'price-asc': query = query.order('price', { ascending: true }); break
         case 'price-desc': query = query.order('price', { ascending: false }); break

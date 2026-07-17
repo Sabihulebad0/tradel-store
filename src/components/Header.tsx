@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useCart } from '../lib/cart'
-import { supabase, type Product } from '../lib/supabase'
+import { db, type Product } from '../lib/db'
 
 const NAV = [
   { label: 'Electronics', slug: 'electronics' },
@@ -40,7 +40,7 @@ export function Header() {
     if (term.length < 2) { setResults([]); return }
     let active = true
     const t = setTimeout(async () => {
-      const { data } = await supabase
+      const { data } = await db
         .from('products')
         .select('*')
         .or(`name.ilike.%${term}%,brand.ilike.%${term}%`)

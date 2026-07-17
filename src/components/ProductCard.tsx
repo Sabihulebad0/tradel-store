@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import type { Product } from '../lib/supabase'
+import type { Product } from '../lib/db'
 import { fmtPKR, pctOff } from '../lib/format'
 import { Stars } from './Stars'
 import { useCart } from '../lib/cart'
