@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Package, Tags, Receipt, Clock, Plus } from 'lucide-react'
 import { db } from '../../lib/db'
 import { fmtPKR } from '../../lib/format'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
 
 export function AdminDashboard() {
   const [stats, setStats] = useState({ products: 0, categories: 0, orders: 0, pending: 0, revenue: 0 })
@@ -26,35 +29,47 @@ export function AdminDashboard() {
   }, [])
 
   const cards = [
-    { label: 'Products', value: stats.products, to: '/admin/products', icon: '📦' },
-    { label: 'Categories', value: stats.categories, to: '/admin/categories', icon: '🗂️' },
-    { label: 'Total Orders', value: stats.orders, to: '/admin/orders', icon: '🧾' },
-    { label: 'Pending Orders', value: stats.pending, to: '/admin/orders?status=pending', icon: '⏳' },
+    { label: 'Products', value: stats.products, to: '/admin/products', icon: Package },
+    { label: 'Categories', value: stats.categories, to: '/admin/categories', icon: Tags },
+    { label: 'Total Orders', value: stats.orders, to: '/admin/orders', icon: Receipt },
+    { label: 'Pending Orders', value: stats.pending, to: '/admin/orders?status=pending', icon: Clock },
   ]
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold text-ink-900">Dashboard</h1>
-      <p className="mt-1 text-sm text-ink-500">Overview of your store.</p>
+      <h1 className="font-display text-2xl font-bold text-foreground">Dashboard</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Overview of your store.</p>
 
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {cards.map(c => (
-          <Link key={c.label} to={c.to} className="card p-5 transition hover:border-brand-200 hover:shadow-md">
-            <div className="text-2xl">{c.icon}</div>
-            <div className="mt-3 font-display text-2xl font-bold text-ink-900">{loading ? '—' : c.value}</div>
-            <div className="text-sm text-ink-500">{c.label}</div>
+          <Link key={c.label} to={c.to}>
+            <Card className="transition hover:border-primary/40 hover:shadow-md">
+              <CardContent className="p-5">
+                <c.icon className="h-6 w-6 text-muted-foreground" />
+                <div className="mt-3 font-display text-2xl font-bold text-foreground">{loading ? '—' : c.value}</div>
+                <div className="text-sm text-muted-foreground">{c.label}</div>
+              </CardContent>
+            </Card>
           </Link>
         ))}
       </div>
 
-      <div className="mt-4 card p-5">
-        <div className="text-sm text-ink-500">Revenue from delivered orders</div>
-        <div className="mt-1 font-display text-3xl font-bold text-ink-900">Rs {loading ? '—' : fmtPKR(stats.revenue)}</div>
-      </div>
+      <Card className="mt-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Revenue from delivered orders</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="font-display text-3xl font-bold text-foreground">Rs {loading ? '—' : fmtPKR(stats.revenue)}</div>
+        </CardContent>
+      </Card>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link to="/admin/products/new" className="btn-primary">+ Add Product</Link>
-        <Link to="/admin/categories/new" className="btn-secondary">+ Add Category</Link>
+        <Button asChild>
+          <Link to="/admin/products/new"><Plus className="h-4 w-4" />Add Product</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link to="/admin/categories/new"><Plus className="h-4 w-4" />Add Category</Link>
+        </Button>
       </div>
     </div>
   )

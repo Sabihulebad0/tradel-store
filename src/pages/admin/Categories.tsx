@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Plus } from 'lucide-react'
+import { toast } from 'sonner'
 import { db, type Category } from '../../lib/db'
+import { Button } from '../../components/ui/button'
+import { Alert, AlertDescription } from '../../components/ui/alert'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '../../components/ui/table'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../../components/ui/alert-dialog'
 
 export function AdminCategories() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<Category | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -17,56 +29,81 @@ export function AdminCategories() {
 
   useEffect(() => { load() }, [])
 
-  const remove = async (c: Category) => {
-    if (!confirm(`Delete category "${c.name}"? Products in it will become uncategorized.`)) return
-    const { error } = await db.from('categories').delete().eq('id', c.id)
-    if (error) { alert(error.message); return }
-    setCategories(prev => prev.filter(x => x.id !== c.id))
+  const remove = async () => {
+    if (!pendingDelete) return
+    const { error } = await db.from('categories').delete().eq('id', pendingDelete.id)
+    if (error) { toast.error(error.message); setPendingDelete(null); return }
+    setCategories(prev => prev.filter(x => x.id !== pendingDelete.id))
+    toast.success(`Deleted "${pendingDelete.name}"`)
+    setPendingDelete(null)
   }
 
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-ink-900">Categories</h1>
-        <Link to="/admin/categories/new" className="btn-primary">+ Add Category</Link>
+        <h1 className="font-display text-2xl font-bold text-foreground">Categories</h1>
+        <Button asChild>
+          <Link to="/admin/categories/new"><Plus className="h-4 w-4" />Add Category</Link>
+        </Button>
       </div>
 
-      {error && <div className="mt-4 rounded-lg bg-accent-50 px-3 py-2 text-sm text-accent-700">{error}</div>}
+      {error && <Alert variant="destructive" className="mt-4"><AlertDescription>{error}</AlertDescription></Alert>}
 
-      <div className="mt-5 card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="border-b border-ink-100 bg-ink-50 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
-            <tr>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Slug</th>
-              <th className="px-4 py-3">Order</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-ink-100">
+      <div className="mt-5 rounded-xl border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Category</TableHead>
+              <TableHead>Slug</TableHead>
+              <TableHead>Order</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {loading ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-ink-400">Loading...</td></tr>
+              <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">Loading...</TableCell></TableRow>
             ) : categories.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-ink-400">No categories yet.</td></tr>
+              <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">No categories yet.</TableCell></TableRow>
             ) : categories.map(c => (
-              <tr key={c.id} className="hover:bg-ink-50/60">
-                <td className="px-4 py-3">
+              <TableRow key={c.id}>
+                <TableCell>
                   <div className="flex items-center gap-2.5">
-                    <img src={c.image} alt="" className="h-9 w-9 rounded-lg object-cover bg-ink-100" />
-                    <span className="font-medium text-ink-900">{c.icon} {c.name}</span>
+                    <img src={c.image} alt="" className="h-9 w-9 rounded-lg object-cover bg-muted" />
+                    <span className="font-medium text-foreground">{c.icon} {c.name}</span>
                   </div>
-                </td>
-                <td className="px-4 py-3 text-ink-500">{c.slug}</td>
-                <td className="px-4 py-3 text-ink-500">{c.sort_order}</td>
-                <td className="px-4 py-3 text-right">
-                  <Link to={`/admin/categories/${c.id}/edit`} className="text-sm font-medium text-brand-600 hover:text-brand-700">Edit</Link>
-                  <button onClick={() => remove(c)} className="ml-4 text-sm font-medium text-accent-600 hover:text-accent-700">Delete</button>
-                </td>
-              </tr>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{c.slug}</TableCell>
+                <TableCell className="text-muted-foreground">{c.sort_order}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="link" size="sm" asChild className="h-auto p-0">
+                    <Link to={`/admin/categories/${c.id}/edit`}>Edit</Link>
+                  </Button>
+                  <Button variant="link" size="sm" className="ml-4 h-auto p-0 text-destructive" onClick={() => setPendingDelete(c)}>
+                    Delete
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={open => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete category?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{pendingDelete?.name}". Products in it will become uncategorized.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={remove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -1,7 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Plus } from 'lucide-react'
+import { toast } from 'sonner'
 import { db, type Product, type Category } from '../../lib/db'
 import { fmtPKR } from '../../lib/format'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Badge } from '../../components/ui/badge'
+import { Alert, AlertDescription } from '../../components/ui/alert'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '../../components/ui/table'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../../components/ui/alert-dialog'
 
 export function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([])
@@ -9,6 +22,7 @@ export function AdminProducts() {
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -24,11 +38,13 @@ export function AdminProducts() {
 
   useEffect(() => { load() }, [])
 
-  const remove = async (p: Product) => {
-    if (!confirm(`Delete product "${p.name}"?`)) return
-    const { error } = await db.from('products').delete().eq('id', p.id)
-    if (error) { alert(error.message); return }
-    setProducts(prev => prev.filter(x => x.id !== p.id))
+  const remove = async () => {
+    if (!pendingDelete) return
+    const { error } = await db.from('products').delete().eq('id', pendingDelete.id)
+    if (error) { toast.error(error.message); setPendingDelete(null); return }
+    setProducts(prev => prev.filter(x => x.id !== pendingDelete.id))
+    toast.success(`Deleted "${pendingDelete.name}"`)
+    setPendingDelete(null)
   }
 
   const catName = (id: string) => categories.find(c => c.id === id)?.name ?? '—'
@@ -40,64 +56,87 @@ export function AdminProducts() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold text-ink-900">Products</h1>
-        <Link to="/admin/products/new" className="btn-primary">+ Add Product</Link>
+        <h1 className="font-display text-2xl font-bold text-foreground">Products</h1>
+        <Button asChild>
+          <Link to="/admin/products/new"><Plus className="h-4 w-4" />Add Product</Link>
+        </Button>
       </div>
 
       <div className="mt-4">
-        <input className="input max-w-sm" placeholder="Search products..." value={q} onChange={e => setQ(e.target.value)} />
+        <Input className="max-w-sm" placeholder="Search products..." value={q} onChange={e => setQ(e.target.value)} />
       </div>
 
-      {error && <div className="mt-4 rounded-lg bg-accent-50 px-3 py-2 text-sm text-accent-700">{error}</div>}
+      {error && <Alert variant="destructive" className="mt-4"><AlertDescription>{error}</AlertDescription></Alert>}
 
-      <div className="mt-5 card overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="border-b border-ink-100 bg-ink-50 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
-            <tr>
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Price</th>
-              <th className="px-4 py-3">Stock</th>
-              <th className="px-4 py-3">Featured</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-ink-100">
+      <div className="mt-5 rounded-xl border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Product</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Stock</TableHead>
+              <TableHead>Featured</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-ink-400">Loading...</td></tr>
+              <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">Loading...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-ink-400">No products found.</td></tr>
+              <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">No products found.</TableCell></TableRow>
             ) : filtered.map(p => (
-              <tr key={p.id} className="hover:bg-ink-50/60">
-                <td className="px-4 py-3">
+              <TableRow key={p.id}>
+                <TableCell>
                   <div className="flex items-center gap-2.5">
-                    <img src={p.image} alt="" className="h-10 w-10 rounded-lg object-cover bg-ink-100" />
+                    <img src={p.image} alt="" className="h-10 w-10 rounded-lg object-cover bg-muted" />
                     <div className="min-w-0">
-                      <div className="truncate font-medium text-ink-900">{p.name}</div>
-                      <div className="text-xs text-ink-500">{p.brand}</div>
+                      <div className="truncate font-medium text-foreground">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.brand}</div>
                     </div>
                   </div>
-                </td>
-                <td className="px-4 py-3 text-ink-500">{catName(p.category_id)}</td>
-                <td className="px-4 py-3">
-                  <div className="font-semibold text-ink-900">Rs {fmtPKR(p.price)}</div>
-                  {p.old_price && <div className="text-xs text-ink-400 line-through">Rs {fmtPKR(p.old_price)}</div>}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`chip text-xs ${p.in_stock ? 'bg-brand-50 text-brand-700' : 'bg-accent-50 text-accent-600'}`}>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{catName(p.category_id)}</TableCell>
+                <TableCell>
+                  <div className="font-semibold text-foreground">Rs {fmtPKR(p.price)}</div>
+                  {p.old_price && <div className="text-xs text-muted-foreground line-through">Rs {fmtPKR(p.old_price)}</div>}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={p.in_stock ? 'secondary' : 'destructive'}>
                     {p.in_stock ? 'In Stock' : 'Out of Stock'}
-                  </span>
-                </td>
-                <td className="px-4 py-3">{p.is_featured ? '⭐' : ''}</td>
-                <td className="px-4 py-3 text-right">
-                  <Link to={`/admin/products/${p.id}/edit`} className="text-sm font-medium text-brand-600 hover:text-brand-700">Edit</Link>
-                  <button onClick={() => remove(p)} className="ml-4 text-sm font-medium text-accent-600 hover:text-accent-700">Delete</button>
-                </td>
-              </tr>
+                  </Badge>
+                </TableCell>
+                <TableCell>{p.is_featured ? '⭐' : ''}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="link" size="sm" asChild className="h-auto p-0">
+                    <Link to={`/admin/products/${p.id}/edit`}>Edit</Link>
+                  </Button>
+                  <Button variant="link" size="sm" className="ml-4 h-auto p-0 text-destructive" onClick={() => setPendingDelete(p)}>
+                    Delete
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={open => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{pendingDelete?.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={remove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

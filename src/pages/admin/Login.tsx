@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { AlertCircle } from 'lucide-react'
 import { useAuth } from '../../lib/auth'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent, CardHeader } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Alert, AlertDescription } from '../../components/ui/alert'
 
 export function AdminLogin() {
   const { session, isAdmin, signIn } = useAuth()
@@ -30,26 +36,51 @@ export function AdminLogin() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-ink-50 px-4">
+    <div className="grid min-h-screen place-items-center bg-muted/30 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="font-display text-2xl font-bold text-ink-900">shopducts</div>
-          <div className="mt-1 text-sm text-ink-500">Admin sign in</div>
+          <div className="font-display text-2xl font-bold text-foreground">shopducts</div>
+          <div className="mt-1 text-sm text-muted-foreground">Admin sign in</div>
         </div>
-        <form onSubmit={submit} className="card space-y-4 p-6">
-          {error && (
-            <div className="rounded-lg bg-accent-50 px-3 py-2 text-sm text-accent-700">{error}</div>
-          )}
-          <label className="block">
-            <span className="text-sm font-medium text-ink-700">Email</span>
-            <input className="input mt-1.5" type="email" required autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-ink-700">Password</span>
-            <input className="input mt-1.5" type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
-          </label>
-          <button type="submit" disabled={busy} className="btn-primary w-full py-3">{busy ? 'Signing in...' : 'Sign In'}</button>
-        </form>
+        <Card>
+          <CardHeader className="sr-only">Sign in</CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={submit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  autoFocus
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </div>
+              <Button type="submit" disabled={busy} className="w-full">
+                {busy ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { db } from '../../lib/db'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Card, CardContent } from '../../components/ui/card'
+import { Alert, AlertDescription } from '../../components/ui/alert'
 
 const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 
@@ -55,47 +60,51 @@ export function AdminCategoryForm() {
     navigate('/admin/categories')
   }
 
-  if (loading) return <div className="text-ink-400">Loading...</div>
+  if (loading) return <div className="text-muted-foreground">Loading...</div>
 
   return (
     <div className="max-w-xl">
-      <div className="flex items-center gap-2 text-sm text-ink-500">
-        <Link to="/admin/categories" className="hover:text-ink-800">Categories</Link><span>/</span>
-        <span className="text-ink-800 font-medium">{isNew ? 'New' : 'Edit'}</span>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link to="/admin/categories" className="hover:text-foreground">Categories</Link><span>/</span>
+        <span className="font-medium text-foreground">{isNew ? 'New' : 'Edit'}</span>
       </div>
-      <h1 className="mt-2 font-display text-2xl font-bold text-ink-900">{isNew ? 'Add Category' : 'Edit Category'}</h1>
+      <h1 className="mt-2 font-display text-2xl font-bold text-foreground">{isNew ? 'Add Category' : 'Edit Category'}</h1>
 
-      <form onSubmit={submit} className="mt-6 card space-y-4 p-6">
-        {error && <div className="rounded-lg bg-accent-50 px-3 py-2 text-sm text-accent-700">{error}</div>}
-        <label className="block">
-          <span className="text-sm font-medium text-ink-700">Name</span>
-          <input className="input mt-1.5" value={form.name} onChange={e => onNameChange(e.target.value)} placeholder="Electronics" required />
-        </label>
-        <label className="block">
-          <span className="text-sm font-medium text-ink-700">Slug</span>
-          <input className="input mt-1.5" value={form.slug} onChange={e => { setSlugTouched(true); set('slug', e.target.value) }} placeholder="electronics" required />
-        </label>
-        <div className="grid grid-cols-2 gap-4">
-          <label className="block">
-            <span className="text-sm font-medium text-ink-700">Icon (emoji)</span>
-            <input className="input mt-1.5" value={form.icon} onChange={e => set('icon', e.target.value)} placeholder="🔌" />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-ink-700">Sort Order</span>
-            <input className="input mt-1.5" type="number" value={form.sort_order} onChange={e => set('sort_order', Number(e.target.value))} />
-          </label>
-        </div>
-        <label className="block">
-          <span className="text-sm font-medium text-ink-700">Image URL</span>
-          <input className="input mt-1.5" value={form.image} onChange={e => set('image', e.target.value)} placeholder="https://..." />
-        </label>
-        {form.image && <img src={form.image} alt="" className="h-32 w-full rounded-xl object-cover bg-ink-100" />}
+      <Card className="mt-6">
+        <CardContent className="pt-6">
+          <form onSubmit={submit} className="space-y-4">
+            {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" value={form.name} onChange={e => onNameChange(e.target.value)} placeholder="Electronics" required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="slug">Slug</Label>
+              <Input id="slug" value={form.slug} onChange={e => { setSlugTouched(true); set('slug', e.target.value) }} placeholder="electronics" required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="icon">Icon (emoji)</Label>
+                <Input id="icon" value={form.icon} onChange={e => set('icon', e.target.value)} placeholder="🔌" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sort_order">Sort Order</Label>
+                <Input id="sort_order" type="number" value={form.sort_order} onChange={e => set('sort_order', Number(e.target.value))} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="image">Image URL</Label>
+              <Input id="image" value={form.image} onChange={e => set('image', e.target.value)} placeholder="https://..." />
+            </div>
+            {form.image && <img src={form.image} alt="" className="h-32 w-full rounded-xl object-cover bg-muted" />}
 
-        <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving...' : 'Save Category'}</button>
-          <Link to="/admin/categories" className="btn-secondary">Cancel</Link>
-        </div>
-      </form>
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save Category'}</Button>
+              <Button type="button" variant="outline" asChild><Link to="/admin/categories">Cancel</Link></Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }
