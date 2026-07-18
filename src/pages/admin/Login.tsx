@@ -22,11 +22,16 @@ export function AdminLogin() {
     return <Navigate to={to} replace />
   }
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
     setBusy(true)
-    const { error } = await signIn(email.trim(), password)
+    // Read straight from the DOM: browser autofill can populate inputs
+    // without firing React's onChange, leaving controlled state stale.
+    const data = new FormData(e.currentTarget)
+    const submittedEmail = String(data.get('email') ?? email).trim()
+    const submittedPassword = String(data.get('password') ?? password)
+    const { error } = await signIn(submittedEmail, submittedPassword)
     setBusy(false)
     if (error) {
       setError(error)
@@ -56,6 +61,7 @@ export function AdminLogin() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   required
                   autoFocus
@@ -68,6 +74,7 @@ export function AdminLogin() {
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   required
                   value={password}
