@@ -12,6 +12,10 @@ export const db = createClient({
   },
 })
 
+// Temporary: lets the admin RLS debug query run from the browser console.
+// Remove once neon/migrations/0002_debug_is_admin.sql is deleted.
+;(window as unknown as { db: typeof db }).db = db
+
 export type Category = {
   id: string
   slug: string
