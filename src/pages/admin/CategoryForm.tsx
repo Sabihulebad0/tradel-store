@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { db } from '../../lib/db'
 import { Button } from '../../components/ui/button'
@@ -8,6 +8,31 @@ import { Card, CardContent } from '../../components/ui/card'
 import { Alert, AlertDescription } from '../../components/ui/alert'
 
 const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+
+const MAX_DIMENSION = 800
+
+function fileToCompressedDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('Could not read file'))
+    reader.onload = () => {
+      const img = new Image()
+      img.onerror = () => reject(new Error('Could not read image'))
+      img.onload = () => {
+        const scale = Math.min(1, MAX_DIMENSION / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('Canvas not supported')); return }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
+      }
+      img.src = reader.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+}
 
 export function AdminCategoryForm() {
   const { id } = useParams()
@@ -19,6 +44,8 @@ export function AdminCategoryForm() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (isNew) return
@@ -38,6 +65,23 @@ export function AdminCategoryForm() {
   const onNameChange = (v: string) => {
     set('name', v)
     if (!slugTouched) set('slug', slugify(v))
+  }
+
+  const onImageSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setError('Please choose an image file'); return }
+    setError('')
+    setUploading(true)
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file)
+      set('image', dataUrl)
+    } catch {
+      setError('Could not process that image')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const submit = async (e: React.FormEvent) => {
@@ -93,10 +137,26 @@ export function AdminCategoryForm() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="image">Image URL</Label>
-              <Input id="image" value={form.image} onChange={e => set('image', e.target.value)} placeholder="https://..." />
+              <Label>Category Image</Label>
+              {form.image && (
+                <img src={form.image} alt="" className="h-32 w-full rounded-xl object-cover bg-muted" />
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onImageSelected}
+              />
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+                  {uploading ? 'Uploading...' : form.image ? 'Replace Image' : 'Upload Image'}
+                </Button>
+                {form.image && (
+                  <Button type="button" variant="ghost" onClick={() => set('image', '')}>Remove</Button>
+                )}
+              </div>
             </div>
-            {form.image && <img src={form.image} alt="" className="h-32 w-full rounded-xl object-cover bg-muted" />}
 
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save Category'}</Button>
